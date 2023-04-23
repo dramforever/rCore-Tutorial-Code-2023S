@@ -113,6 +113,7 @@ pub fn current_trap_cx_user_va() -> usize {
 }
 
 /// get the top addr of kernel stack
+#[allow(unused)]
 pub fn current_kstack_top() -> usize {
     current_task().unwrap().kstack.get_top()
 }

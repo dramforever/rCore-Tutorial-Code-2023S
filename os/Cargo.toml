@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Yifan Wu <shinbokuow@163.com>"]
 edition = "2021"
 
+autobins = false
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -19,6 +21,11 @@ lose-net-stack = { git = "https://github.com/yfblock/lose-net-stack", rev = "3f4
 easy-fs = { path = "../easy-fs" }
 embedded-graphics = "0.7.1"
 tinybmp = "0.3.1"
+rvind-unwinder = { git = "https://github.com/dramforever/rvind.git" }
 
 [profile.release]
 debug = true
+
+[lib]
+crate_type = ["staticlib"]
+path = "src/main.rs"

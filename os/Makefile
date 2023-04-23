@@ -2,6 +2,7 @@
 TARGET := riscv64gc-unknown-none-elf
 MODE := release
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
+KERNEL_A := target/$(TARGET)/$(MODE)/libos.a
 KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 FS_IMG := ../user/target/$(TARGET)/$(MODE)/fs.img
@@ -29,6 +30,10 @@ KERNEL_ENTRY_PA := 0x80200000
 # Binutils
 OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
+CC := riscv64-unknown-linux-gnu-gcc
+LD := rust-lld -flavor gnu
+STRIP := rust-strip
+rvind := rvind-analyze
 
 CHAPTER ?= $(shell git rev-parse --abbrev-ref HEAD | grep -oP 'ch\K[0-9]')
 TEST ?= $(CHAPTER)
@@ -44,11 +49,12 @@ build: env $(KERNEL_BIN) fs-img
 
 env:
 	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
+	cargo install --git https://github.com/dramforever/rvind.git rvind-analyze
 	cargo install cargo-binutils
 	rustup component add rust-src
 	rustup component add llvm-tools-preview
 
-$(KERNEL_BIN): kernel
+$(KERNEL_BIN): $(KERNEL_ELF)
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 fs-img: $(APPS)
@@ -56,10 +62,20 @@ fs-img: $(APPS)
 	@rm -f $(FS_IMG)
 	@cd ../easy-fs-fuse && cargo run --release -- -s ../user/src/bin/ -t ../user/target/riscv64gc-unknown-none-elf/release/
 
+$(KERNEL_ELF): kernel
+	$(LD) -Tsrc/linker.ld --gc-sections --whole-archive -o $@.1 $(KERNEL_A)
+	$(rvind) -o rvind.bin $@.1 > /dev/null
+	$(CC) -c -o $@.rvind.o src/rvind_bin.s
+	$(LD) -Tsrc/linker.ld --gc-sections --whole-archive -o $@ $(KERNEL_A) $@.rvind.o
+	$(STRIP) -X $@
+	$(rvind) -o rvind.bin.2 $@ > /dev/null
+	cmp rvind.bin rvind.bin.2
+	@rm -f rvind.bin rvind.bin.2
+
 kernel:
 	@make -C ../user build TEST=$(TEST) CHAPTER=$(CHAPTER) BASE=$(BASE)
 	@echo Platform: $(BOARD)
-	@cargo build --release
+	@cargo build -Zbuild-std=core,alloc --release
 
 clean:
 	@cargo clean
