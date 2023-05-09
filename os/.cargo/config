@@ -7,4 +7,5 @@ rustflags = [
     "-Cforce-frame-pointers=no",
     "-Zno-jump-tables",
     "-Cforce-unwind-tables=yes",
+    "-Csymbol-mangling-version=v0",
 ]

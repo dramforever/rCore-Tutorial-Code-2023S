@@ -45,7 +45,7 @@ DISASM ?= -x
 # Run usertests or usershell
 TEST ?=
 
-build: env $(KERNEL_BIN) fs-img 
+build: env $(KERNEL_BIN) fs-img
 
 env:
 	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
@@ -70,7 +70,9 @@ $(KERNEL_ELF): kernel
 	$(STRIP) -X $@
 	$(rvind) -o rvind.bin.2 $@ > /dev/null
 	cmp rvind.bin rvind.bin.2
-	@rm -f rvind.bin rvind.bin.2
+	cmp rvind.bin.sym rvind.bin.2.sym
+	cmp rvind.bin.str rvind.bin.2.str
+	@rm -f rvind.bin*
 
 kernel:
 	@make -C ../user build TEST=$(TEST) CHAPTER=$(CHAPTER) BASE=$(BASE)
